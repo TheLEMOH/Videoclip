@@ -4,11 +4,14 @@ proj4.defs("EPSG:3857");
 proj4.defs("EPSG:4326");
 proj4.defs("EPSG:28416", "+proj=tmerc +lat_0=0 +lon_0=93 +k=1 +x_0=16500000 +y_0=0 +ellps=krass +towgs84=23.92,-141.27,-80.9,-0,0.35,0.82,-0.12 +units=m +no_defs");
 /* Классы */
-const PM_RANGE = [0, 12, 35.4, 55.4, 150, 200, 250, Infinity];
+const PM_RANGE = [0, 25, 35, 160, Infinity];
 const AQI_RANGE = [0, 50, 100, 150, 200, 300, 500, Infinity];
 const PDK_RANGE = [0, 1, Infinity];
 const SPEED_RANGE = [0, 2, 4, 7, Infinity]
 const DIR_RANGE = [0, 2, 4, 7, Infinity]
+
+/* Зеленый,Салатовый,Желтый,Красный
+ */
 
 const RANGES = {
     pm: PM_RANGE,
@@ -29,14 +32,14 @@ const CODES = {
 };
 
 const TEXT = {
-    pm: "PM",
-    aqi: "AQI",
-    mcp: "ПДК",
-    temp: "Температура",
-    dir: "Направление ветра",
-    speed: "Скорость ветра",
-}
-/* Преобразование значений */
+        pm: "PM",
+        aqi: "AQI",
+        mcp: "ПДК",
+        temp: "Температура",
+        dir: "Направление ветра",
+        speed: "Скорость ветра",
+    }
+    /* Преобразование значений */
 const CONVERSION = {
     pm: 1000,
     aqi: 1,
@@ -67,12 +70,10 @@ const DIR_TEXT = [
 /* Цветовые схемы */
 const COLORS_PM = [
     { color: 'rgb(0,153,102)', text: "rgb(250,250,250)" },
+    { color: 'rgb(178, 223, 138)', text: "rgb(0,0,0)" },
     { color: 'rgb(255,222,51)', text: "rgb(0,0,0)" },
-    { color: 'rgb(255,153,51)', text: "rgb(250,250,250)" },
     { color: 'rgb(204,0,51)', text: "rgb(250,250,250)" },
-    { color: 'rgb(102,0,153)', text: "rgb(250,250,250)" },
-    { color: 'rgb(126,0,35)', text: "rgb(250,250,250)" },
-    { color: 'rgb(0,0,0)', text: "rgb(250,250,250)" }];
+];
 
 const COLORS_AQI = [
     { color: 'rgb(0,153,102)', text: "rgb(250,250,250)" },
@@ -81,7 +82,8 @@ const COLORS_AQI = [
     { color: 'rgb(204,0,51)', text: "rgb(250,250,250)" },
     { color: 'rgb(102,0,153)', text: "rgb(250,250,250)" },
     { color: 'rgb(126,0,35)', text: "rgb(250,250,250)" },
-    { color: 'rgb(0,0,0)', text: "rgb(250,250,250)" }];
+    { color: 'rgb(0,0,0)', text: "rgb(250,250,250)" }
+];
 
 const COLORS_PDK = [
     { color: 'rgb(0,153,102)', text: "rgb(250,250,250)" },
@@ -124,7 +126,7 @@ async function Download(dates, project, indicators, interval) {
     })
 
     const URLs = project.map(p => {
-        return `https://gis.krasn.ru/sc/api/1.0/projects/${p}/aggvalues?&key=aa0orjtt0npfwyym&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 23:00:00&time_interval=${interval}&indicators=${i}&limit=30000'`;
+        return `https://sensor.krasn.ru/sc/api/1.0/projects/${p}/aggvalues?&key=aa0orjtt0npfwyym&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 23:00:00&time_interval=${interval}&indicators=${i}&limit=30000'`;
     })
 
     const inquiries = URLs.map(u => {
@@ -153,7 +155,7 @@ async function DownloadWind(dates, indicators, interval) {
     const i = indicators.map(i => {
         return CODES[i];
     })
-    const URL = `https://gis.krasn.ru/sc/api/1.0/projects/6/aggvalues?&key=aa0orjtt0npfwyym&sites=4203&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 23:00:00&time_interval=${interval}&indicators=${i}&limit=30000'`;
+    const URL = `https://sensor.krasn.ru/sc/api/1.0/projects/6/aggvalues?&key=aa0orjtt0npfwyym&sites=4203&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 23:00:00&time_interval=${interval}&indicators=${i}&limit=30000'`;
     const responce = fetch(URL);
     const result = responce.then(e => XML2JSON(e));
     return result;
@@ -162,7 +164,7 @@ async function DownloadWind(dates, indicators, interval) {
 async function DownloadSites(dates, project) {
 
     const URLs = project.map(p => {
-        return `https://gis.krasn.ru/sc/api/1.0/projects/${p}/sites?&key=aa0orjtt0npfwyym&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 00:00:00&limit=30000'`;
+        return `https://sensor.krasn.ru/sc/api/1.0/projects/${p}/sites?&key=aa0orjtt0npfwyym&time_begin=${dates[0]} 00:00:00&time_end=${dates[dates.length - 1]} 00:00:00&limit=30000'`;
     })
 
     const inquiries = URLs.map(u => {
@@ -206,7 +208,15 @@ async function XML2JSON(e, p) {
                 const x = coordinates.getAttribute("x");
                 const y = coordinates.getAttribute("y");
                 result.push({
-                    site: site, project: p, indicator: indicator, time: time, hour: hour, value: value, min: min, max: max, coordinates: proj4("EPSG:4326", "EPSG:28416", [
+                    site: site,
+                    project: p,
+                    indicator: indicator,
+                    time: time,
+                    hour: hour,
+                    value: value,
+                    min: min,
+                    max: max,
+                    coordinates: proj4("EPSG:4326", "EPSG:28416", [
                         Number(x),
                         Number(y),
                     ])
@@ -230,7 +240,8 @@ async function XML2JSONSites(e) {
             const name = site.getElementsByTagName("name")[0].innerHTML;
             if (coordinates) {
                 result.push({
-                    id: id, name: name
+                    id: id,
+                    name: name
                 })
             }
         })
@@ -282,9 +293,7 @@ function DateToText(e, c) {
             weekday: 'short',
         });
         return result
-    }
-
-    else {
+    } else {
         return new Date().toLocaleString('ru', {
             month: 'long',
             day: 'numeric',
@@ -360,7 +369,13 @@ function CreatePDK(data) {
         const value = d.value * 1000;
         const PDK = (value / CC).toFixed(2);
         return {
-            site: d.site, indicator: "371", project: d.project, time: d.time, hour: d.hour, value: PDK, coordinates: d.coordinates
+            site: d.site,
+            indicator: "371",
+            project: d.project,
+            time: d.time,
+            hour: d.hour,
+            value: PDK,
+            coordinates: d.coordinates
         }
     });
     return PDK;
@@ -370,9 +385,13 @@ function CreateColoredTooltips(data, dates, indicator) {
     /* Среднее */
     const avg = dates.map(d => {
         const timeData = GetData(data, d, indicator);
+
         const timeDataAVG = AVG(timeData, indicator);
+        console.log(timeData, timeDataAVG);
         return { AVG: timeDataAVG };
     });
+
+
     /* Сборка */
     const coloredBox = avg.map(a => {
         for (let i = 0; i < RANGES[indicator].length; i++) {
@@ -385,11 +404,13 @@ function CreateColoredTooltips(data, dates, indicator) {
 }
 
 function AVG(data, indicator) {
+    const filtered = data.filter(d => d.project != 12)
     let amount = 0;
-    const length = data.length;
-    data.forEach(d => {
+    const length = filtered.length;
+    filtered.forEach(d => {
         amount += Number(d.value);
     })
+
     if (indicator == "pm" || indicator == "aqi" || indicator == "temp") {
         return ((amount / length) * CONVERSION[indicator]).toFixed(0);
     }
@@ -426,15 +447,13 @@ function CreateDataForChart(data, indicator) {
         data.forEach(d => {
             if (d.hour == "00:00") {
                 labels.push(DateToText(d.time, true))
-            }
-            else {
+            } else {
                 labels.push(d.hour)
             }
             const value = Number(d.value);
             if (indicator == "mcp") {
                 values.push(value.toFixed(2))
-            }
-            else {
+            } else {
                 values.push(value.toFixed(1))
             }
             for (let i = 0; i < RANGES[indicator].length; i++) {
@@ -443,8 +462,7 @@ function CreateDataForChart(data, indicator) {
                 }
             }
         })
-    }
-    else {
+    } else {
         labels = DIR_TEXT;
         values = data;
         data.forEach(d => {
@@ -548,14 +566,13 @@ function CountDirections(e) {
         if (element.speed > 0.5)
             direction.push(element.text);
     })
-
-    const counts = direction.reduce(function (acc, el) {
+    const counts = direction.reduce(function(acc, el) {
         acc[el] = (acc[el] || 0) + 1;
         return acc;
     }, {});
     const result = [];
     DIR_TEXT.forEach(i => {
-        (counts[i]) ? result.push(counts[i]) : result.push(0)
+        (counts[i]) ? result.push(counts[i]): result.push(0)
     });
     return result
 }
@@ -565,7 +582,7 @@ function PercentDirection(e) {
     let sum = 0;
     const result = e.map(d => {
         sum += d;
-        return Number((d / length * 100).toFixed(0));
+        return d;
     })
     const calm = (100 - (sum / length * 100)).toFixed(0);
     return { calm, direction: result };

@@ -44,7 +44,6 @@ import { GetData } from "./scripts/Download";
 import { GetDataAllTime } from "./scripts/Download";
 import { CreateDates } from "./scripts/Download";
 import { CreateColoredTooltips } from "./scripts/Download";
-import { CreatePDK } from "./scripts/Download";
 import { DirectionToText } from "./scripts/Download";
 import { DirectionRound } from "./scripts/Download";
 import { AVGperHour } from "./scripts/Download";
@@ -93,29 +92,26 @@ export default {
       DownloadSites(dates, [1, 8, 9, 12]).then((data) => {
         this.receivedSites = data;
       });
-      Download(dates, [1, 8, 9, 12], ["pm", "aqi", "mcp"], "1day").then(
-        (data) => {
-          const rememberIndicator = localStorage.getItem("air.indicator");
-          if (rememberIndicator) {
-            this.indicator = rememberIndicator;
-          }
-          this.dates = dates;
-          this.receivedData = data;
-          this.tooltips = CreateColoredTooltips(data, dates, this.indicator);
-          const dataForLayers = GetData(data, dates[0], this.indicator);
-          this.layers = CreateLayers(dataForLayers, this.indicator);
+      Download(dates, [1, 8, 9, 12], ["pm", "aqi", "mcp"], "1day").then((d) => {
+        //
+        //
+        //
+        const data = d.filter((d) => d.value < 10000);
+        //
+        //
+        //
+        const rememberIndicator = localStorage.getItem("air.indicator");
+        if (rememberIndicator) {
+          this.indicator = rememberIndicator;
         }
-      );
+        this.dates = dates;
+        this.receivedData = data;
+        this.tooltips = CreateColoredTooltips(data, dates, this.indicator);
+
+        const dataForLayers = GetData(data, dates[0], this.indicator);
+        this.layers = CreateLayers(dataForLayers, this.indicator);
+      });
       DownloadWind(dates, ["temp"], "1day").then((data) => {
-        /*    const windDir = GetDataAllTime(data, "dir").map((d) => {
-          return DirectionToText(d.value);
-        });
-
-        const windSpeed = GetDataAllTime(data, "speed").map((d) => {
-          const v = Number(d.value);
-          return v.toFixed(0);
-        }); */
-
         const temp = GetDataAllTime(data, "temp").map((d) => {
           return {
             avg: Number(d.value).toFixed(0),
@@ -173,37 +169,46 @@ export default {
           this.UpdateAnalyticWind();
         });
       });
-      Download(dates, [1, 8, 9, 12], ["pm", "aqi"], "3hour").then((data) => {
-        dates.forEach((d) => {
-          const PM = GetData(data, d, "pm");
-          const AQI = GetData(data, d, "aqi");
-          const avgPM = AVGperHour(PM, "pm");
-          const avgAQI = AVGperHour(AQI, "aqi");
-          const PDK = CreatePDK(PM);
-          const avgPDK = AVGperHour(PDK, "mcp");
+      Download(dates, [1, 8, 9, 12], ["pm", "aqi", "mcp"], "3hour").then(
+        (dataF) => {
+          dates.forEach((d) => {
+            //
+            //
+            //
+            const data = dataF.filter((dF) => dF.value < 10000);
+            //
+            //
+            //
+            const PM = GetData(data, d, "pm");
+            const AQI = GetData(data, d, "aqi");
+            const avgPM = AVGperHour(PM, "pm");
+            const avgAQI = AVGperHour(AQI, "aqi");
+            const PDK = GetData(data, d, "mcp");
+            const avgPDK = AVGperHour(PDK, "mcp");
 
-          this.savedDataforChart.push({
-            time: d,
-            indicator: "pm",
-            datasets: avgPM,
+            this.savedDataforChart.push({
+              time: d,
+              indicator: "pm",
+              datasets: avgPM,
+            });
+
+            this.savedDataforChart.push({
+              time: d,
+              indicator: "aqi",
+              datasets: avgAQI,
+            });
+
+            this.savedDataforChart.push({
+              time: d,
+              indicator: "mcp",
+              datasets: avgPDK,
+            });
+
+            this.loading += 1;
           });
-
-          this.savedDataforChart.push({
-            time: d,
-            indicator: "aqi",
-            datasets: avgAQI,
-          });
-
-          this.savedDataforChart.push({
-            time: d,
-            indicator: "mcp",
-            datasets: avgPDK,
-          });
-
-          this.loading += 1;
-        });
-        this.UpdateAnalyticIndicators();
-      });
+          this.UpdateAnalyticIndicators();
+        }
+      );
     });
   },
   methods: {
@@ -312,7 +317,7 @@ body {
   height: auto;
   padding: 5px;
   border-top: 1px solid grey;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
   color: white;
   font-family: Arial, Helvetica, sans-serif;
 }

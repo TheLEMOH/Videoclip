@@ -18,7 +18,7 @@ export default {
           zIndex: 5,
           callbacks: {
             label: (tooltipItem, data) => {
-              let label = data.labels[tooltipItem.datasetIndex] || "";
+              let label = data.labels[tooltipItem.index] || "";
               label += ": " + tooltipItem.value + "%";
               return label;
             },

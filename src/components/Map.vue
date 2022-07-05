@@ -19,16 +19,21 @@
         :resolutions="resolutions"
         :tileGrid="tileGrid"
         :extent="extent"
-        :zIndex="1"
+        :zIndex="0"
       ></vl-source-wms>
     </vl-layer-tile>
 
-    <vl-layer-vector v-for="(feature, index) in features" :key="index">
+    <vl-layer-vector
+      v-for="(feature, index) in features"
+      :key="index"
+      :zIndex="index + 10"
+    >
       <vl-source-vector
         ref="gjsource"
         :features="feature.features"
         :projection="projection"
         :extent="extent"
+        :zIndex="index + 10"
       ></vl-source-vector>
       <vl-style-func :factory="pointsStyleFunc" />
     </vl-layer-vector>
